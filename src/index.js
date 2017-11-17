@@ -104,12 +104,16 @@ const Swipeout = createReactClass({
     left: PropTypes.array,
     onOpen: PropTypes.func,
     onClose: PropTypes.func,
+    onMove: PropTypes.func,
+    onEnd: PropTypes.func,
     right: PropTypes.array,
     scroll: PropTypes.func,
     style: (ViewPropTypes || View.propTypes).style,
     sensitivity: PropTypes.number,
     buttonWidth: PropTypes.number,
     disabled: PropTypes.bool,
+    tweenDuration: PropTypes.number,
+    callbackOnTouch: PropTypes.bool
   },
 
   getDefaultProps: function() {
@@ -118,6 +122,8 @@ const Swipeout = createReactClass({
       rowID: -1,
       sectionID: -1,
       sensitivity: 50,
+      callbackOnTouch:true,
+      tweenDuration:160,
     };
   },
 
@@ -132,7 +138,6 @@ const Swipeout = createReactClass({
       contentWidth: 0,
       openedRight: false,
       swiping: false,
-      tweenDuration: 160,
       timeStart: null,
     };
   },
@@ -181,6 +186,9 @@ const Swipeout = createReactClass({
 
   _handlePanResponderMove: function(e: Object, gestureState: Object) {
     if (this.props.disabled) return;
+
+    this._callOnMove();
+
     var posX = gestureState.dx;
     var posY = gestureState.dy;
     var leftWidth = this.state.btnsLeftWidth;
@@ -245,9 +253,10 @@ const Swipeout = createReactClass({
   },
 
   _tweenContent: function(state, endValue) {
+    const duration = endValue === 0 ? this.props.tweenDuration*1.5 : this.props.tweenDuration,
     this.tweenState(state, {
       easing: tweenState.easingTypes.easeInOutQuad,
-      duration: endValue === 0 ? this.state.tweenDuration*1.5 : this.state.tweenDuration,
+      duration: duration,
       endValue: endValue,
     });
   },
@@ -279,13 +288,16 @@ const Swipeout = createReactClass({
   },
 
   _close: function() {
+    this._tweenContent('contentPos', 0);
+
     const { sectionID, rowID, onClose } = this.props;
     if (onClose && (this.state.openedLeft || this.state.openedRight)) {
       const direction = this.state.openedRight ? 'right' : 'left';
       onClose(sectionID, rowID, direction);
     }
-    this._tweenContent('contentPos', 0);
-    this._callOnClose();
+    else {
+      this._callOnClose();
+    }
     this.setState({
       openedRight: false,
       openedLeft: false,
@@ -299,6 +311,14 @@ const Swipeout = createReactClass({
 
   _callOnOpen: function() {
     if (this.props.onOpen) this.props.onOpen(this.props.sectionID, this.props.rowID);
+  },
+
+  _callOnMove: function() {
+    if (this.props.onMove) this.props.onMove(this.props.sectionID, this.props.rowID);
+  },
+  
+  _callOnEnd: function() {
+    if (this.props.onEnd) this.props.onEnd(this.props.sectionID, this.props.rowID);
   },
 
   _openRight: function() {

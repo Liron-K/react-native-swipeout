@@ -121,12 +121,16 @@ var Swipeout = (0, _createReactClass2.default)({
     left: _propTypes2.default.array,
     onOpen: _propTypes2.default.func,
     onClose: _propTypes2.default.func,
+    onMove: _propTypes2.default.func,
+    onEnd: _propTypes2.default.func,
     right: _propTypes2.default.array,
     scroll: _propTypes2.default.func,
     style: (_reactNative.ViewPropTypes || _reactNative.View.propTypes).style,
     sensitivity: _propTypes2.default.number,
     buttonWidth: _propTypes2.default.number,
-    disabled: _propTypes2.default.bool
+    disabled: _propTypes2.default.bool,
+    tweenDuration: _propTypes2.default.number,
+    callbackOnTouch: _propTypes2.default.bool
   },
 
   getDefaultProps: function getDefaultProps() {
@@ -134,7 +138,9 @@ var Swipeout = (0, _createReactClass2.default)({
       disabled: false,
       rowID: -1,
       sectionID: -1,
-      sensitivity: 50
+      sensitivity: 50,
+      tweenDuration:160,
+      callbackOnTouch:true
     };
   },
 
@@ -149,7 +155,6 @@ var Swipeout = (0, _createReactClass2.default)({
       contentWidth: 0,
       openedRight: false,
       swiping: false,
-      tweenDuration: 160,
       timeStart: null
     };
   },
@@ -181,7 +186,7 @@ var Swipeout = (0, _createReactClass2.default)({
   },
 
   componentWillReceiveProps: function componentWillReceiveProps(nextProps) {
-    if (nextProps.close) this._close();
+    if (nextProps.close) { this._close(); }
     if (nextProps.openRight) this._openRight();
     if (nextProps.openLeft) this._openLeft();
   },
@@ -190,10 +195,12 @@ var Swipeout = (0, _createReactClass2.default)({
     var _this2 = this;
 
     if (this.props.disabled) return;
-    if (!this.state.openedLeft && !this.state.openedRight) {
-      this._callOnOpen();
-    } else {
-      this._callOnClose();
+    if(this.props.callbackOnTouch) {  
+      if (!this.state.openedLeft && !this.state.openedRight) {
+        this._callOnOpen();
+      } else {
+        this._callOnClose();
+      }
     }
     this.refs.swipeoutContent.measure(function (ox, oy, width, height) {
       var buttonWidth = _this2.props.buttonWidth || width / 5;
@@ -209,11 +216,15 @@ var Swipeout = (0, _createReactClass2.default)({
 
   _handlePanResponderMove: function _handlePanResponderMove(e, gestureState) {
     if (this.props.disabled) return;
+
+    this._callOnMove();
+
     var posX = gestureState.dx;
     var posY = gestureState.dy;
     var leftWidth = this.state.btnsLeftWidth;
     var rightWidth = this.state.btnsRightWidth;
-    if (this.state.openedRight) var posX = gestureState.dx - rightWidth;else if (this.state.openedLeft) var posX = gestureState.dx + leftWidth;
+    if (this.state.openedRight) var posX = gestureState.dx - rightWidth;
+    else if (this.state.openedLeft) var posX = gestureState.dx + leftWidth;
 
     //  prevent scroll if moveX is true
     var moveX = Math.abs(posX) > Math.abs(posY);
@@ -232,6 +243,9 @@ var Swipeout = (0, _createReactClass2.default)({
 
   _handlePanResponderEnd: function _handlePanResponderEnd(e, gestureState) {
     if (this.props.disabled) return;
+
+    this._callOnEnd();
+
     var posX = gestureState.dx;
     var contentPos = this.state.contentPos;
     var contentWidth = this.state.contentWidth;
@@ -271,10 +285,11 @@ var Swipeout = (0, _createReactClass2.default)({
   },
 
   _tweenContent: function _tweenContent(state, endValue) {
+    const duration = endValue === 0 ? this.props.tweenDuration*1.5 : this.props.tweenDuration
     this.tweenState(state, {
       easing: _reactTweenState2.default.easingTypes.easeInOutQuad,
-      duration: endValue === 0 ? this.state.tweenDuration * 1.5 : this.state.tweenDuration,
-      endValue: endValue
+      duration: duration,
+      endValue: endValue,
     });
   },
 
@@ -313,12 +328,14 @@ var Swipeout = (0, _createReactClass2.default)({
         rowID = _props2.rowID,
         onClose = _props2.onClose;
 
+    this._tweenContent('contentPos', 0);
     if (onClose && (this.state.openedLeft || this.state.openedRight)) {
       var direction = this.state.openedRight ? 'right' : 'left';
       onClose(sectionID, rowID, direction);
     }
-    this._tweenContent('contentPos', 0);
-    this._callOnClose();
+    else {
+      this._callOnClose();
+    }
     this.setState({
       openedRight: false,
       openedLeft: false,
@@ -332,6 +349,14 @@ var Swipeout = (0, _createReactClass2.default)({
 
   _callOnOpen: function _callOnOpen() {
     if (this.props.onOpen) this.props.onOpen(this.props.sectionID, this.props.rowID);
+  },
+
+  _callOnMove: function _callOnMove() {
+    if (this.props.onMove) this.props.onMove(this.props.sectionID, this.props.rowID);
+  },
+
+  _callOnEnd: function _callOnEnd() {
+    if (this.props.onEnd) this.props.onEnd(this.props.sectionID, this.props.rowID);
   },
 
   _openRight: function _openRight() {
