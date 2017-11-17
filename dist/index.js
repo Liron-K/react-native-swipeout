@@ -43,6 +43,8 @@ var SwipeoutBtn = (0, _createReactClass2.default)({
     color: _propTypes2.default.string,
     component: _propTypes2.default.node,
     onPress: _propTypes2.default.func,
+    onPressIn: _propTypes2.default.func,
+    onPressOut: _propTypes2.default.func,
     text: _propTypes2.default.string,
     type: _propTypes2.default.string,
     underlayColor: _propTypes2.default.string
@@ -56,6 +58,8 @@ var SwipeoutBtn = (0, _createReactClass2.default)({
       underlayColor: null,
       height: 0,
       onPress: null,
+      onPressIn: null,
+      onPressOut: null,
       disabled: false,
       text: 'Click me',
       type: '',
@@ -96,6 +100,8 @@ var SwipeoutBtn = (0, _createReactClass2.default)({
       _NativeButton2.default,
       {
         onPress: this.props.onPress,
+        onPressIn: this.props.onPressIn,
+        onPressOut: this.props.onPressOut,
         underlayColor: this.props.underlayColor,
         disabled: this.props.disabled,
         style: [_styles2.default.swipeoutBtnTouchable, styleSwipeoutBtn],
@@ -123,6 +129,9 @@ var Swipeout = (0, _createReactClass2.default)({
     onClose: _propTypes2.default.func,
     onMove: _propTypes2.default.func,
     onEnd: _propTypes2.default.func,
+    onButtonPress: _propTypes2.default.func,
+    onButtonPressIn: _propTypes2.default.func,
+    onButtonPressOut: _propTypes2.default.func,
     right: _propTypes2.default.array,
     scroll: _propTypes2.default.func,
     style: (_reactNative.ViewPropTypes || _reactNative.View.propTypes).style,
@@ -299,10 +308,12 @@ var Swipeout = (0, _createReactClass2.default)({
   },
 
   //  close swipeout on button press
-  _autoClose: function _autoClose(btn) {
+  _autoClose: function _autoClose(btn, index, isLeft) {
     if (this.state.autoClose) this._close();
     var onPress = btn.onPress;
     if (onPress) onPress();
+
+    this._callOnButtonPress(btn, index, isLeft)
   },
 
   _open: function _open(contentPos, direction) {
@@ -357,6 +368,18 @@ var Swipeout = (0, _createReactClass2.default)({
 
   _callOnEnd: function _callOnEnd() {
     if (this.props.onEnd) this.props.onEnd(this.props.sectionID, this.props.rowID);
+  },
+
+  _callOnButtonPress: function _callOnButtonPress(index, isLeft) {
+    if (this.props.onButtonPress) this.props.onButtonPress(this.props.sectionID, this.props.rowID, index, isLeft);
+  },
+  
+  _callOnButtonPressIn: function _callOnButtonPressIn(index, isLeft) {
+    if (this.props.onButtonPressIn) this.props.onButtonPressIn(this.props.sectionID, this.props.rowID, index, isLeft);
+  },
+  
+  _callOnButtonPressOut: function _callOnButtonPressOut(index, isLeft) {
+    if (this.props.onButtonPressOut) this.props.onButtonPressOut(this.props.sectionID, this.props.rowID, index, isLeft);
   },
 
   _openRight: function _openRight() {
@@ -454,8 +477,8 @@ var Swipeout = (0, _createReactClass2.default)({
         }, this._panResponder.panHandlers),
         this.props.children
       ),
-      this._renderButtons(this.props.right, isRightVisible, styleRight),
-      this._renderButtons(this.props.left, isLeftVisible, styleLeft)
+      this._renderButtons(this.props.right, isRightVisible, styleRight, false),
+      this._renderButtons(this.props.left, isLeftVisible, styleLeft, true)
     );
   },
 
@@ -470,19 +493,21 @@ var Swipeout = (0, _createReactClass2.default)({
     });
   },
 
-  _renderButtons: function _renderButtons(buttons, isVisible, style) {
+  _renderButtons: function _renderButtons(buttons, isVisible, style, isLeft) {
     if (buttons && isVisible) {
       return _react2.default.createElement(
         _reactNative.View,
         { style: style },
-        buttons.map(this._renderButton)
+        buttons.map((btn, index) => {
+          return this._renderButton(btn, index, isLeft)
+        })
       );
     } else {
       return _react2.default.createElement(_reactNative.View, null);
     }
   },
 
-  _renderButton: function _renderButton(btn, i) {
+  _renderButton: function _renderButton(btn, i, isLeft) {
     var _this5 = this;
 
     return _react2.default.createElement(SwipeoutBtn, {
@@ -493,7 +518,13 @@ var Swipeout = (0, _createReactClass2.default)({
       height: this.state.contentHeight,
       key: i,
       onPress: function onPress() {
-        return _this5._autoClose(btn);
+        return _this5._autoClose(btn, i, isLeft);
+      },
+      onPressIn: function onPressIn() {
+        return _this5._callOnButtonPressIn(btn, i, isLeft);
+      },
+      onPressOut: function onPressIn() {
+        return _this5._callOnButtonPressOut(btn, i, isLeft);
       },
       text: btn.text,
       type: btn.type,

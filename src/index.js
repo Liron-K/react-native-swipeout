@@ -24,6 +24,8 @@ const SwipeoutBtn = createReactClass({
     color: PropTypes.string,
     component: PropTypes.node,
     onPress: PropTypes.func,
+    onPressIn: PropTypes.func,
+    onPressOut: PropTypes.func,
     text: PropTypes.string,
     type: PropTypes.string,
     underlayColor: PropTypes.string,
@@ -37,6 +39,8 @@ const SwipeoutBtn = createReactClass({
       underlayColor: null,
       height: 0,
       onPress: null,
+      onPressIn: null,
+      onPressOut: null,
       disabled: false,
       text: 'Click me',
       type: '',
@@ -78,6 +82,8 @@ const SwipeoutBtn = createReactClass({
     return  (
       <NativeButton
         onPress={this.props.onPress}
+        onPressIn={this.props.onPressIn}
+        onPressOut={this.props.onPressOut}
         underlayColor={this.props.underlayColor}
         disabled={this.props.disabled}
         style={[styles.swipeoutBtnTouchable, styleSwipeoutBtn]}
@@ -106,6 +112,9 @@ const Swipeout = createReactClass({
     onClose: PropTypes.func,
     onMove: PropTypes.func,
     onEnd: PropTypes.func,
+    onButtonPress: PropTypes.func,
+    onButtonPressIn: PropTypes.func,
+    onButtonPressOut: PropTypes.func,
     right: PropTypes.array,
     scroll: PropTypes.func,
     style: (ViewPropTypes || View.propTypes).style,
@@ -268,10 +277,13 @@ const Swipeout = createReactClass({
   },
 
   //  close swipeout on button press
-  _autoClose: function(btn) {
+  _autoClose: function(btn, index, isLeft) {
     if (this.state.autoClose) this._close();
     var onPress = btn.onPress;
     if (onPress) onPress();
+
+    this._callOnButtonPress(btn, index, isLeft)
+    
   },
 
   _open: function(contentPos, direction) {
@@ -319,6 +331,18 @@ const Swipeout = createReactClass({
   
   _callOnEnd: function() {
     if (this.props.onEnd) this.props.onEnd(this.props.sectionID, this.props.rowID);
+  },
+  
+  _callOnButtonPress: function(index, isLeft) {
+    if (this.props.onButtonPress) this.props.onButtonPress(this.props.sectionID, this.props.rowID, index, isLeft);
+  },
+  
+  _callOnButtonPressIn: function(index, isLeft) {
+    if (this.props.onButtonPressIn) this.props.onButtonPressIn(this.props.sectionID, this.props.rowID, index, isLeft);
+  },
+  
+  _callOnButtonPressOut: function(index, isLeft) {
+    if (this.props.onButtonPressOut) this.props.onButtonPressOut(this.props.sectionID, this.props.rowID, index, isLeft);
   },
 
   _openRight: function() {
@@ -410,8 +434,8 @@ const Swipeout = createReactClass({
         >
           {this.props.children}
         </View>
-        { this._renderButtons(this.props.right, isRightVisible, styleRight) }
-        { this._renderButtons(this.props.left, isLeftVisible, styleLeft) }
+        { this._renderButtons(this.props.right, isRightVisible, styleRight, false) }
+        { this._renderButtons(this.props.left, isLeftVisible, styleLeft, true) }
       </View>
     );
   },
@@ -424,10 +448,14 @@ const Swipeout = createReactClass({
     });
   },
 
-  _renderButtons: function(buttons, isVisible, style) {
+  _renderButtons: function(buttons, isVisible, style, isLeft) {
     if (buttons && isVisible) {
       return( <View style={style}>
-        { buttons.map(this._renderButton) }
+        { 
+          buttons.map((btn, index) => {
+            return this._renderButton(btn, index, isLeft)
+          }
+        }
       </View>);
     } else {
       return (
@@ -436,7 +464,7 @@ const Swipeout = createReactClass({
     }
   },
 
-  _renderButton: function(btn, i) {
+  _renderButton: function(btn, i, isLeft) {
     return (
       <SwipeoutBtn
         backgroundColor={btn.backgroundColor}
@@ -445,7 +473,9 @@ const Swipeout = createReactClass({
         disabled={btn.disabled}
         height={this.state.contentHeight}
         key={i}
-        onPress={() => this._autoClose(btn)}
+        onPress={() => this._autoClose(btn, i, isLeft)}
+        onPressIn={() => this._callOnButtonPressIn(btn, i, isLeft)}
+        onPressOut={() => this._callOnButtonPressOut(btn, i, isLeft)}
         text={btn.text}
         type={btn.type}
         underlayColor={btn.underlayColor}
